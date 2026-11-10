@@ -136,23 +136,52 @@ OP is the symbol +, -, or *. Signal an error for anything else."
 
 Order the branches with care. NIL is a symbol as well as the empty list, and a
 number is not a cons, so the atom tests come before the list tests."
-
   (cond
-    
-    ;; Leona, palagay branch mo above this
 
-    ;; (let ((name init) ...) body): hand it to eval-let, which evaluates
-    ;; the inits, binds the names, and runs the body.
-    ((eq (car expr) 'let)
-     (eval-let expr env))
-    ;; (lambda (params) body): build a closure that remembers the
-    ;; environment we are in right now. This is the line where the
-    ;; defining environment is captured.
-    ((eq (car expr) 'lambda)
-     (make-closure (cadr expr) (caddr expr) env))
-    ;; Anything else with a list head is a function call. Evaluate the
-    ;; head to get a closure, evaluate the arguments, then apply it.
-    ;; This stays last because it catches every list not handled above.
-    (t
-     (apply-closure (eval-expr (car expr) env)
-                    (eval-operands (cdr expr) env)))))
+    #| atom tests |#
+
+    ;; if number, return as is
+    ((numberp expr) expr)
+
+    ;; if symbol, lookup value
+    ((symbolp expr) (lookup expr env))
+
+
+    #| list tests |#
+
+    ;; guard check, verify list then check operator
+    ((and (consp expr) (member (car expr) '(+ - *)))
+
+      ;; work out the operands first, then calculate the results
+      (apply-op (car expr) (eval-operands (cdr expr) env))
+    )
+
+    ;; verify list, then check if the head is let
+    ((and (consp expr) (eq (car expr) 'let))
+     
+      ;; pass the let to get results
+      (eval-let expr env)
+    )
+
+    ;; verify list, then check if the head is lambda
+    ((and (consp expr) (eq (car expr) 'lambda))
+      
+      ;; build a closure from the params, body and current env
+      (make-closure (second expr) (third expr) env)
+    )
+
+    ;; any other list is a call: work out the function and the arguments, then run it
+    ((consp expr)
+
+      ;; run closure on the arguments
+      (apply-closure (eval-expr (car expr) env)
+                    (eval-operands (cdr expr) env)    ;; work out the arguments and return list of values
+      )
+    )
+
+    ;; anything else
+    (t (error "cannot evaluate: ~S" expr))
+  
+  )
+)
+  
