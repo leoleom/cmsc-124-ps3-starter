@@ -57,18 +57,21 @@ OP is the symbol +, -, or *. Signal an error for anything else."
   ;; come first, they shadow any older binding with the same name.
   (append (mapcar #'cons params args) env))
 
-MAPCAR takes two lists and #'CONS pairs them. Build a new list. Do not modify
-ENV, because the caller keeps using it after the extension goes out of scope."
-  (declare (ignore params args env))
-  (error "extend-env is not implemented"))
-
 (defun eval-let (expr env)
-  "Evaluate (let ((name init) ...) body).
-
-Every init is evaluated in ENV before any name is bound, so the bindings happen
-in parallel and an init cannot see a name the same LET introduces."
-  (declare (ignore expr env))
-  (error "eval-let is not implemented"))
+  "Evaluate (let ((name init) ...) body) with every init evaluated in ENV."
+  ;; expr looks like (let ((x 1) (y 2)) body).
+  ;; cadr is the list of bindings and caddr is the body.
+  (let* ((bindings (cadr expr))
+         ;; The names being bound, e.g. (x y).
+         (names (mapcar #'car bindings))
+         ;; Evaluate every initializer in the OLD env, before anything is
+         ;; bound. This is what makes it let and not let*: one initializer
+         ;; can't see the variables bound by the same let.
+         (vals (mapcar (lambda (b) (eval-expr (cadr b) env)) bindings)))
+    ;; Only now extend the environment, then run the body in the new one.
+    ;; The extension disappears when the body ends, because env itself was
+    ;; never modified.
+    (eval-expr (caddr expr) (extend-env names vals env))))
 
 ;;; E4 -- lambda and application.
 
