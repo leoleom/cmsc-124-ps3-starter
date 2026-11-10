@@ -1,7 +1,10 @@
 # Environments and the Toy Evaluator
 
-Replace this paragraph after your checks pass. Trace one form through your own
-`eval-expr`, point to the line that captures the defining environment, say what
-would change if application joined the arguments to the caller's environment
-instead, and explain why the host CLISP needs `funcall` where the toy language
-doesn't.
+We traced the scope-discrimination form from the coursesite, the nested "let" that returns 3 under lexical scope and 101 under dynamic scope, with our eval-expr starting with an empty environment. First, the outer "let" evaluates "2" in the empty environment, so eval-let extends it to "((x . 2))". The next "let" has a lambda as its initializer, so eval-expr takes the "lambda" branch.
+
+This lambda branch is the one with "(make-closure (second expr) (third expr) env)", and this is the line that captures the defining environment.
+make-closure then returns "(list :closure params body env)". The env is only holding "((x . 2))" at that point since the binding for "f" is not in it yet because eval-let evaluates every initializer before it binds any name. That said, the "x" bound to 100 does not exist yet either, so the closure keeps the "x" which holds 2. Afterward, the environment grow. It becomes "((x . 100) (f . closure) (x . 2))", but the closure's saved environment stays as "((x . 2))" because "extend-env" uses append and never modifies the given list. From the "(f 1)" call, apply-closure builds "((y . 1) (x . 2))" from "cenv", or the captured environment, and then goes on to evaluate "(+ x y)" as 2 plus 1, which gives 3.
+
+If apply-closure took the caller's environment and extended that instead of the captured environment, then the body would run in "((y . 1) (x . 100) (f . closure) (x . 2))". This happens because "lookup" takes the first match which would the "x" that holds 100 and the answer would be 101 instead of 3. That would make the language dynamically scoped since a function would see the variables of whoever calls it, not the ones from where it was written. 
+
+CLISP is a Lisp-2, so it keeps variables and functions in separate namespaces. A variable that holds a function can't be called through "(f 3)" as CLISP looks for a function named "f", not the variable, so we write "(funcall f 3)" instead. In the same way, "#'cons" gets the function out of its namespace so it can be handed to "mapcar" in extend-env. Our toy language has only one environment. In the call branch, "(eval-expr (car expr) env)" evaluates the head "f" like any other expression. Because "f" is a symbol, eval-expr takes its symbol branch and passes it to lookup, which finds "(f . closure)" in the single environment and returns the closure. This means that in our toy language, "f" can hold a closure and be called directly as "(f 1)", with no need for a "funcall".
