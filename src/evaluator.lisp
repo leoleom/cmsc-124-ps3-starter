@@ -32,10 +32,10 @@ name. Signal an error when NAME is not bound at all."
 
     ;; found pair means return its value, even if nil
     (if pair
-        (cdr pair)
-        
-        ;; no pair, unbound name
-        (error "Unbound variable: ~S" name)
+      (cdr pair)
+      
+      ;; no pair, unbound name
+      (error "Unbound variable: ~S" name)
     )
   )
 )
@@ -51,12 +51,31 @@ arguments and MAPCAR hands its function one."
   ;; evaluate each expression with the same env
   (mapcar (lambda (e) (eval-expr e env)) exprs))
 
+
+
 (defun apply-op (op values)
   "Apply the arithmetic operator OP to the two numbers in VALUES.
 
 OP is the symbol +, -, or *. Signal an error for anything else."
-  (declare (ignore op values))
-  (error "apply-op is not implemented"))
+
+;; calculate by the operator symbol
+  (case op
+  
+    ;; addition
+    (+ (+ (first values) (second values)))
+
+    ;; subtraction
+    (- (- (first values) (second values)))
+
+    ;; multiplication
+    (* (* (first values) (second values)))
+
+    ;; any other symbol is an error
+    (otherwise (error "Unknown operator: ~S" op))
+  )
+)
+
+
 
 ;;; E3 -- let.
 
