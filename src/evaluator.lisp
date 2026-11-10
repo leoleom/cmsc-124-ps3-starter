@@ -83,12 +83,20 @@ OP is the symbol +, -, or *. Signal an error for anything else."
   (list :closure params body env))
 
 (defun apply-closure (closure args)
-  "Run CLOSURE on ARGS.
-
-The parameters join the environment the closure captured. Signal an error when
-CLOSURE is not a closure, and when the argument count does not match."
-  (declare (ignore closure args))
-  (error "apply-closure is not implemented"))
+  "Run CLOSURE on ARGS in the environment the closure captured."
+  ;; First make sure we were really given a closure, i.e. a list that
+  ;; starts with :closure.
+  (unless (and (consp closure) (eq (car closure) :closure))
+    (error "Not a closure: ~S" closure))
+  ;; Unpack the saved pieces: parameters, body, and captured environment.
+  (destructuring-bind (params body cenv) (cdr closure)
+    ;; The number of arguments has to match the number of parameters.
+    (unless (= (length params) (length args))
+      (error "Expected ~D arguments, got ~D" (length params) (length args)))
+    ;; Bind the parameters on top of the CAPTURED environment (cenv), not
+    ;; the caller's. This one line is what makes the language lexically
+    ;; scoped: the function sees the variables from where it was defined.
+    (eval-expr body (extend-env params args cenv))))
 
 ;;; The dispatcher.
 
