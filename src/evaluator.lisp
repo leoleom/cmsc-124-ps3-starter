@@ -26,8 +26,19 @@
 
 The first match wins, so an inner binding shadows an outer one that shares its
 name. Signal an error when NAME is not bound at all."
-  (declare (ignore name env))
-  (error "lookup is not implemented"))
+
+  ;; find first pair name match
+  (let ((pair( assoc name env)))
+
+    ;; found pair means return its value, even if nil
+    (if pair
+        (cdr pair)
+        
+        ;; no pair, unbound name
+        (error "Unbound variable: ~S" name)
+    )
+  )
+)
 
 ;;; E2 -- prefix arithmetic.
 
