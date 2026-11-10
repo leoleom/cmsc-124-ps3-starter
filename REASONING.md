@@ -13,7 +13,7 @@ misread. Those entries belong in the correction commits.
 
 ## P01
 
-+ is considered a function-name in this case, and a function works out all arguments first before actually running, as stated in the evaluation rule for function call forms. Lisp sees 1 and marks it as the first argument, but then sees (* 2 3) so it evaluates this on its own which gives 6. Finally, it evaluates the values against the + which gives 7, a whole number, making it an integer with none for its length.
+`+` is considered a function-name in this case, and a function works out all arguments first before actually running, as stated in the evaluation rule for function call forms. Lisp sees 1 and marks it as the first argument, but then sees (* 2 3) so it evaluates this on its own which gives 6. Finally, it evaluates the values against the + which gives 7, a whole number, making it an integer with none for its length.
 
 ## P02
 
