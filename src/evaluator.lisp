@@ -49,40 +49,54 @@ OP is the symbol +, -, or *. Signal an error for anything else."
 ;;; E3 -- let.
 
 (defun extend-env (params args env)
-  "ENV with PARAMS bound to ARGS in front of it.
-
-MAPCAR takes two lists and #'CONS pairs them. Build a new list. Do not modify
-ENV, because the caller keeps using it after the extension goes out of scope."
-  (declare (ignore params args env))
-  (error "extend-env is not implemented"))
+  "Return ENV extended with PARAMS bound to ARGS, without modifying ENV."
+  ;; Pair each parameter name with its value, e.g. (x y) and (1 2) become
+  ;; ((x . 1) (y . 2)).
+  ;; append builds a brand new list with those pairs in front of the old
+  ;; environment, so the caller's ENV is never changed. Because the new pairs
+  ;; come first, they shadow any older binding with the same name.
+  (append (mapcar #'cons params args) env))
 
 (defun eval-let (expr env)
-  "Evaluate (let ((name init) ...) body).
-
-Every init is evaluated in ENV before any name is bound, so the bindings happen
-in parallel and an init cannot see a name the same LET introduces."
-  (declare (ignore expr env))
-  (error "eval-let is not implemented"))
+  "Evaluate (let ((name init) ...) body) with every init evaluated in ENV."
+  ;; expr looks like (let ((x 1) (y 2)) body).
+  ;; cadr is the list of bindings and caddr is the body.
+  (let* ((bindings (cadr expr))
+         ;; The names being bound, e.g. (x y).
+         (names (mapcar #'car bindings))
+         ;; Evaluate every initializer in the OLD env, before anything is
+         ;; bound. This is what makes it let and not let*: one initializer
+         ;; can't see the variables bound by the same let.
+         (vals (mapcar (lambda (b) (eval-expr (cadr b) env)) bindings)))
+    ;; Only now extend the environment, then run the body in the new one.
+    ;; The extension disappears when the body ends, because env itself was
+    ;; never modified.
+    (eval-expr (caddr expr) (extend-env names vals env))))
 
 ;;; E4 -- lambda and application.
 
 (defun make-closure (params body env)
-  "A closure over ENV.
-
-Return the list (:closure params body env). ENV is the environment the lambda
-was written in, not the one it will later be called from. Saving the wrong one
-is what makes the difference between 3 and 101 in the case the manual walks
-through."
-  (declare (ignore params body env))
-  (error "make-closure is not implemented"))
+  "Return the closure list holding PARAMS, BODY and the defining ENV."
+  ;; A closure is just the code (params and body) bundled with the
+  ;; environment that existed when the lambda was written.
+  ;; Saving env here is what lets the function remember its variables later.
+  (list :closure params body env))
 
 (defun apply-closure (closure args)
-  "Run CLOSURE on ARGS.
-
-The parameters join the environment the closure captured. Signal an error when
-CLOSURE is not a closure, and when the argument count does not match."
-  (declare (ignore closure args))
-  (error "apply-closure is not implemented"))
+  "Run CLOSURE on ARGS in the environment the closure captured."
+  ;; First make sure we were really given a closure, i.e. a list that
+  ;; starts with :closure.
+  (unless (and (consp closure) (eq (car closure) :closure))
+    (error "Not a closure: ~S" closure))
+  ;; Unpack the saved pieces: parameters, body, and captured environment.
+  (destructuring-bind (params body cenv) (cdr closure)
+    ;; The number of arguments has to match the number of parameters.
+    (unless (= (length params) (length args))
+      (error "Expected ~D arguments, got ~D" (length params) (length args)))
+    ;; Bind the parameters on top of the CAPTURED environment (cenv), not
+    ;; the caller's. This one line is what makes the language lexically
+    ;; scoped: the function sees the variables from where it was defined.
+    (eval-expr body (extend-env params args cenv))))
 
 ;;; The dispatcher.
 
@@ -91,5 +105,23 @@ CLOSURE is not a closure, and when the argument count does not match."
 
 Order the branches with care. NIL is a symbol as well as the empty list, and a
 number is not a cons, so the atom tests come before the list tests."
-  (declare (ignore expr env))
-  (error "eval-expr is not implemented"))
+
+  (cond
+    
+    ;; Leona, palagay branch mo above this
+
+    ;; (let ((name init) ...) body): hand it to eval-let, which evaluates
+    ;; the inits, binds the names, and runs the body.
+    ((eq (car expr) 'let)
+     (eval-let expr env))
+    ;; (lambda (params) body): build a closure that remembers the
+    ;; environment we are in right now. This is the line where the
+    ;; defining environment is captured.
+    ((eq (car expr) 'lambda)
+     (make-closure (cadr expr) (caddr expr) env))
+    ;; Anything else with a list head is a function call. Evaluate the
+    ;; head to get a closure, evaluate the arguments, then apply it.
+    ;; This stays last because it catches every list not handled above.
+    (t
+     (apply-closure (eval-expr (car expr) env)
+                    (eval-operands (cdr expr) env)))))
