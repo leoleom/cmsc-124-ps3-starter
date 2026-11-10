@@ -118,4 +118,10 @@ number is not a cons, so the atom tests come before the list tests."
     ;; environment we are in right now. This is the line where the
     ;; defining environment is captured.
     ((eq (car expr) 'lambda)
-     (make-closure (cadr expr) (caddr expr) env))))
+     (make-closure (cadr expr) (caddr expr) env))
+    ;; Anything else with a list head is a function call. Evaluate the
+    ;; head to get a closure, evaluate the arguments, then apply it.
+    ;; This stays last because it catches every list not handled above.
+    (t
+     (apply-closure (eval-expr (car expr) env)
+                    (eval-operands (cdr expr) env)))))
