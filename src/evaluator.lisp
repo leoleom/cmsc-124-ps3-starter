@@ -76,14 +76,11 @@ OP is the symbol +, -, or *. Signal an error for anything else."
 ;;; E4 -- lambda and application.
 
 (defun make-closure (params body env)
-  "A closure over ENV.
-
-Return the list (:closure params body env). ENV is the environment the lambda
-was written in, not the one it will later be called from. Saving the wrong one
-is what makes the difference between 3 and 101 in the case the manual walks
-through."
-  (declare (ignore params body env))
-  (error "make-closure is not implemented"))
+  "Return the closure list holding PARAMS, BODY and the defining ENV."
+  ;; A closure is just the code (params and body) bundled with the
+  ;; environment that existed when the lambda was written.
+  ;; Saving env here is what lets the function remember its variables later.
+  (list :closure params body env))
 
 (defun apply-closure (closure args)
   "Run CLOSURE on ARGS.
