@@ -105,5 +105,17 @@ OP is the symbol +, -, or *. Signal an error for anything else."
 
 Order the branches with care. NIL is a symbol as well as the empty list, and a
 number is not a cons, so the atom tests come before the list tests."
-  (declare (ignore expr env))
-  (error "eval-expr is not implemented"))
+
+  (cond
+    
+    ;; Leona, palagay branch mo above this
+
+    ;; (let ((name init) ...) body): hand it to eval-let, which evaluates
+    ;; the inits, binds the names, and runs the body.
+    ((eq (car expr) 'let)
+     (eval-let expr env))
+    ;; (lambda (params) body): build a closure that remembers the
+    ;; environment we are in right now. This is the line where the
+    ;; defining environment is captured.
+    ((eq (car expr) 'lambda)
+     (make-closure (cadr expr) (caddr expr) env))))
