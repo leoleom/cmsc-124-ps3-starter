@@ -49,7 +49,13 @@ OP is the symbol +, -, or *. Signal an error for anything else."
 ;;; E3 -- let.
 
 (defun extend-env (params args env)
-  "ENV with PARAMS bound to ARGS in front of it.
+  "Return ENV extended with PARAMS bound to ARGS, without modifying ENV."
+  ;; Pair each parameter name with its value, e.g. (x y) and (1 2) become
+  ;; ((x . 1) (y . 2)).
+  ;; append builds a brand new list with those pairs in front of the old
+  ;; environment, so the caller's ENV is never changed. Because the new pairs
+  ;; come first, they shadow any older binding with the same name.
+  (append (mapcar #'cons params args) env))
 
 MAPCAR takes two lists and #'CONS pairs them. Build a new list. Do not modify
 ENV, because the caller keeps using it after the extension goes out of scope."
