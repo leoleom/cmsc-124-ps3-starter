@@ -4,6 +4,9 @@
 This repository holds the CLISP prediction corpus and the toy evaluator for
 Problem Set 3. The assignment manual defines the work and the submission rules.
 
+## Group Members:
+- Junel Arellano (Junel-A)
+- Leona Blancaflor (leoleom)
 ## Layout
 
 ```text
@@ -127,3 +130,5 @@ from the newest. They agree. The grader re-derives all 64 published
 expectations before it scores anything, so a build that printed one value
 differently, or classified one head differently, would stop the run and say so.
 No runner has. `./run P01` also prints the same four fields on all three.
+
+Final check: all 91 public checks pass locally with ./check.sh.
